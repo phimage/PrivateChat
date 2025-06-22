@@ -184,7 +184,7 @@ struct ToolRowView: View {
                             .font(.headline)
                             .foregroundColor(isEnabled ? .primary : .secondary)
                         
-                        Text("Tool for enhanced functionality")
+                        Text(tool.description)
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .lineLimit(2)

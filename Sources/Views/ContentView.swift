@@ -42,7 +42,7 @@ struct ContentView: View {
         .onAppear {
             // If no sessions exist, show the new session sheet
             if chatManager.sessions.isEmpty {
-                showingNewSessionSheet = true
+                showingNewSessionSheet = false
             } else if selectedSessionId == nil {
                 // Select the first session if available
                 selectedSessionId = chatManager.sessions.first?.id
