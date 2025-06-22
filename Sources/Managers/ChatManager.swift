@@ -29,12 +29,17 @@ class ChatManager: ObservableObject {
     }
     
     @discardableResult
-    func createNewSession(systemInstructions: String? = nil) -> ChatSession {
+    func createNewSession(systemInstructions: String? = nil, temperature: Double? = nil) -> ChatSession {
         let session = ChatSession()
         
         // Set custom system instructions if provided
         if let instructions = systemInstructions {
             session.systemInstructions = instructions
+        }
+        
+        // Set custom temperature if provided
+        if let temp = temperature {
+            session.temperature = temp
         }
         
         sessions.append(session)

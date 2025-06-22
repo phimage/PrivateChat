@@ -21,3 +21,5 @@ A macOS Application to chat with Apple Foundation Models.
 
 - persist chat session
 - settings for MCP: filter them or add some
+- fix bugs
+ - kill mcp servers, do not spawn many of them

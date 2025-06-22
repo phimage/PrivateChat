@@ -63,8 +63,8 @@ struct ContentView: View {
             }
         }
         .sheet(isPresented: $showingNewSessionSheet) {
-            NewSessionView(isPresented: $showingNewSessionSheet) { systemInstructions in
-                let newSession = chatManager.createNewSession(systemInstructions: systemInstructions)
+            NewSessionView(isPresented: $showingNewSessionSheet) { systemInstructions, temperature in
+                let newSession = chatManager.createNewSession(systemInstructions: systemInstructions, temperature: temperature)
                 selectedSessionId = newSession.id
             }
         }
