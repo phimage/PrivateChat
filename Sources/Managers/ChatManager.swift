@@ -16,10 +16,16 @@ class ChatManager: ObservableObject {
     
     @Published var sessions: [ChatSession] = []
     private let logger = Logger(label: "ChatManager")
+    private let toolManager = ToolManager()
     
     init() {
         // Don't create initial session automatically
         // Let the user create the first session with custom instructions
+        
+        // Load tools once when ChatManager is initialized
+        Task {
+            await toolManager.loadToolsIfNeeded()
+        }
     }
     
     @discardableResult
@@ -81,11 +87,19 @@ class ChatManager: ObservableObject {
         }
     }
     
+    /// Provides access to the shared tool manager
+    var sharedToolManager: ToolManager {
+        return toolManager
+    }
+    
     // MARK: - Private Methods
     
     private func initializeSession(_ session: ChatSession) async {
-        // Load tools
-        let tools = await loadTools()
+        // Ensure tools are loaded
+        await toolManager.loadToolsIfNeeded()
+        
+        // Get tools from the shared tool manager
+        let tools = toolManager.tools
         session.tools = tools
         
         // Create language model session
@@ -93,33 +107,6 @@ class ChatManager: ObservableObject {
         session.languageModelSession = languageModelSession
         
         logger.debug("Initialized session \(session.id) with \(tools.count) tools")
-    }
-    
-    private func loadTools() async -> [any FoundationModels.Tool] {
-        let toolService = ToolService()
-        let allTools = await toolService.loadTools(logger: logger).foundationModelsTools
-        
-        // Remove duplicates by name
-        let uniqueTools = removeDuplicateTools(from: allTools)
-        
-        logger.debug("Loaded \(uniqueTools.count) unique tools")
-        return uniqueTools
-    }
-    
-    private func removeDuplicateTools(from tools: [any FoundationModels.Tool]) -> [any FoundationModels.Tool] {
-        var seenNames = Set<String>()
-        var uniqueTools: [any FoundationModels.Tool] = []
-        
-        for tool in tools {
-            if !seenNames.contains(tool.name) {
-                seenNames.insert(tool.name)
-                uniqueTools.append(tool)
-            } else {
-                logger.debug("Removing duplicate tool: \(tool.name)")
-            }
-        }
-        
-        return uniqueTools
     }
     
     private func createLanguageModelSession(for session: ChatSession, with tools: [any FoundationModels.Tool]) -> LanguageModelSession {
