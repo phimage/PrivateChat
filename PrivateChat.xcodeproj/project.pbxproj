@@ -347,7 +347,7 @@
 			repositoryURL = "https://github.com/phimage/MCPUtils";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.0.4;
+				minimumVersion = 0.0.5;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

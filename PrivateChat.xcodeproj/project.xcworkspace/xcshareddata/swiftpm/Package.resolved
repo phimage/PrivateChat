@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/phimage/MCPUtils",
       "state" : {
-        "revision" : "8385a8d4a4c1a8ea38516ffff9578d31d7b62a85",
-        "version" : "0.0.4"
+        "revision" : "f43a2e70d9c83bfb08717e6d78e5272c2d8a5f48",
+        "version" : "0.0.5"
       }
     },
     {

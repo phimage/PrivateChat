@@ -16,14 +16,32 @@ struct ChatSettingsView: View {
     
     @State private var searchText = ""
     
-    var filteredTools: [any FoundationModels.Tool] {
+    var filteredToolsByClient: [String: [any FoundationModels.Tool]] {
+        let toolsByClient = toolManager.toolsByClient
+        
         if searchText.isEmpty {
-            return toolManager.allTools
+            return toolsByClient
         } else {
-            return toolManager.allTools.filter { tool in
-                tool.name.localizedCaseInsensitiveContains(searchText)
+            var filtered: [String: [any FoundationModels.Tool]] = [:]
+            
+            for (clientName, tools) in toolsByClient {
+                let filteredTools = tools.filter { tool in
+                    tool.name.localizedCaseInsensitiveContains(searchText) ||
+                    tool.description.localizedCaseInsensitiveContains(searchText) ||
+                    clientName.localizedCaseInsensitiveContains(searchText)
+                }
+                
+                if !filteredTools.isEmpty {
+                    filtered[clientName] = filteredTools
+                }
             }
+            
+            return filtered
         }
+    }
+    
+    var totalFilteredToolsCount: Int {
+        filteredToolsByClient.values.flatMap { $0 }.count
     }
     
     var body: some View {
@@ -109,8 +127,8 @@ struct ChatSettingsView: View {
                         TextField("Search tools...", text: $searchText)
                             .textFieldStyle(.roundedBorder)
                         
-                        // Tools list
-                        if filteredTools.isEmpty {
+                        // Tools list grouped by client
+                        if filteredToolsByClient.isEmpty {
                             VStack {
                                 Image(systemName: "magnifyingglass")
                                     .font(.title)
@@ -127,19 +145,31 @@ struct ChatSettingsView: View {
                             .frame(maxWidth: .infinity, minHeight: 100)
                         } else {
                             List {
-                                ForEach(filteredTools, id: \.name) { tool in
-                                    ToolRowView(
-                                        tool: tool,
-                                        isEnabled: toolManager.enabledToolNames.contains(tool.name),
-                                        onToggle: { enabled in
-                                            withAnimation(.easeInOut(duration: 0.2)) {
-                                                toolManager.setToolEnabled(tool.name, enabled: enabled)
-                                            }
-                                            Task {
-                                                await chatManager.reinitializeSession(session.id)
+                                ForEach(Array(filteredToolsByClient.keys.sorted()), id: \.self) { clientName in
+                                    if let tools = filteredToolsByClient[clientName] {
+                                        Section(header: ClientHeaderView(
+                                            clientName: clientName, 
+                                            toolCount: tools.count,
+                                            toolManager: toolManager,
+                                            chatManager: chatManager,
+                                            sessionId: session.id
+                                        )) {
+                                            ForEach(tools, id: \.name) { tool in
+                                                ToolRowView(
+                                                    tool: tool,
+                                                    isEnabled: toolManager.enabledToolNames.contains(tool.name),
+                                                    onToggle: { enabled in
+                                                        withAnimation(.easeInOut(duration: 0.2)) {
+                                                            toolManager.setToolEnabled(tool.name, enabled: enabled)
+                                                        }
+                                                        Task {
+                                                            await chatManager.reinitializeSession(session.id)
+                                                        }
+                                                    }
+                                                )
                                             }
                                         }
-                                    )
+                                    }
                                 }
                             }
                             .frame(minHeight: 200)
@@ -205,6 +235,104 @@ struct ToolRowView: View {
         .background(isEnabled ? Color.clear : Color.gray.opacity(0.1))
         .cornerRadius(6)
         .animation(.easeInOut(duration: 0.2), value: isEnabled)
+    }
+}
+
+struct ClientHeaderView: View {
+    let clientName: String
+    let toolCount: Int
+    let toolManager: ToolManager
+    let chatManager: ChatManager
+    let sessionId: UUID
+    
+    var body: some View {
+        HStack {
+            Image(systemName: clientIcon)
+                .font(.title3)
+                .foregroundColor(.accentColor)
+            
+            Text(clientName)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+            
+            Spacer()
+            
+            // Client-level controls
+            HStack(spacing: 8) {
+                // Enable/Disable toggle for the entire client
+                Button(action: {
+                    if toolManager.areAllToolsFromClientEnabled(clientName) {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            toolManager.disableAllToolsFromClient(clientName)
+                        }
+                    } else {
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            toolManager.enableAllToolsFromClient(clientName)
+                        }
+                    }
+                    Task {
+                        await chatManager.reinitializeSession(sessionId)
+                    }
+                }) {
+                    Image(systemName: clientToggleIcon)
+                        .font(.caption)
+                        .foregroundColor(clientToggleColor)
+                }
+                .buttonStyle(.borderless)
+                .help(clientToggleHelpText)
+                
+                Text("\(toolCount) tool\(toolCount == 1 ? "" : "s")")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(Color.secondary.opacity(0.1))
+                    .clipShape(Capsule())
+            }
+        }
+    }
+    
+    private var clientIcon: String {
+        switch clientName.lowercased() {
+        case "github":
+            return "checkmark.seal"
+        case "file system", "filesystem":
+            return "folder"
+        case "web browser", "browser":
+            return "globe"
+        case "general":
+            return "wrench.and.screwdriver"
+        default:
+            return "app.connected.to.app.below.fill"
+        }
+    }
+    
+    private var clientToggleIcon: String {
+        if toolManager.areAllToolsFromClientEnabled(clientName) {
+            return "checkmark.circle.fill"
+        } else if toolManager.areAnyToolsFromClientEnabled(clientName) {
+            return "minus.circle.fill"
+        } else {
+            return "circle"
+        }
+    }
+    
+    private var clientToggleColor: Color {
+        if toolManager.areAllToolsFromClientEnabled(clientName) {
+            return .green
+        } else if toolManager.areAnyToolsFromClientEnabled(clientName) {
+            return .orange
+        } else {
+            return .secondary
+        }
+    }
+    
+    private var clientToggleHelpText: String {
+        if toolManager.areAllToolsFromClientEnabled(clientName) {
+            return "Disable all \(clientName) tools"
+        } else {
+            return "Enable all \(clientName) tools"
+        }
     }
 }
 

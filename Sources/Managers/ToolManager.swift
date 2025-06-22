@@ -45,6 +45,41 @@ class ToolManager: ObservableObject {
         return isLoaded
     }
     
+    // MARK: - Public Methods
+    
+    /// Returns tools grouped by MCP client name
+    var toolsByClient: [String: [any FoundationModels.Tool]] {
+        var groupedTools: [String: [any FoundationModels.Tool]] = [:]
+        
+        for tool in _allTools {
+            // Try to access the MCP client name from the tool
+            let clientName = getClientName(for: tool)
+            
+            if groupedTools[clientName] == nil {
+                groupedTools[clientName] = []
+            }
+            groupedTools[clientName]?.append(tool)
+        }
+        
+        return groupedTools
+    }
+    
+    /// Returns enabled tools grouped by MCP client name
+    var enabledToolsByClient: [String: [any FoundationModels.Tool]] {
+        var groupedTools: [String: [any FoundationModels.Tool]] = [:]
+        
+        for tool in enabledTools {
+            let clientName = getClientName(for: tool)
+            
+            if groupedTools[clientName] == nil {
+                groupedTools[clientName] = []
+            }
+            groupedTools[clientName]?.append(tool)
+        }
+        
+        return groupedTools
+    }
+    
     /// Loads tools asynchronously. Safe to call multiple times - will only load once.
     func loadToolsIfNeeded() async {
         // If already loaded or currently loading, return
@@ -87,6 +122,36 @@ class ToolManager: ObservableObject {
         enabledToolNames.removeAll()
     }
     
+    /// Enable all tools from a specific client
+    func enableAllToolsFromClient(_ clientName: String) {
+        if let tools = toolsByClient[clientName] {
+            for tool in tools {
+                enabledToolNames.insert(tool.name)
+            }
+        }
+    }
+    
+    /// Disable all tools from a specific client
+    func disableAllToolsFromClient(_ clientName: String) {
+        if let tools = toolsByClient[clientName] {
+            for tool in tools {
+                enabledToolNames.remove(tool.name)
+            }
+        }
+    }
+    
+    /// Check if all tools from a client are enabled
+    func areAllToolsFromClientEnabled(_ clientName: String) -> Bool {
+        guard let tools = toolsByClient[clientName], !tools.isEmpty else { return false }
+        return tools.allSatisfy { enabledToolNames.contains($0.name) }
+    }
+    
+    /// Check if any tools from a client are enabled
+    func areAnyToolsFromClientEnabled(_ clientName: String) -> Bool {
+        guard let tools = toolsByClient[clientName] else { return false }
+        return tools.contains { enabledToolNames.contains($0.name) }
+    }
+
     // MARK: - Private Methods
     
     private func loadTools() async {
@@ -124,4 +189,17 @@ class ToolManager: ObservableObject {
         
         return uniqueTools
     }
+    
+    /// Get MCP client name for a tool
+    private func getClientName(for tool: any FoundationModels.Tool) -> String {
+        // For now, let's try to use reflection or check if there's a way to get the client info
+        if let mcpTool = tool as? MCPWrapperTool {
+            // Try to access the MCP client property
+            return mcpTool.mcpClient.name
+        }
+
+        // If no client info found, group under "General"
+        return "General"
+    }
+
 }
