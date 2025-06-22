@@ -50,10 +50,7 @@ class ChatManager: ObservableObject {
     func deleteSession(_ sessionId: UUID) {
         sessions.removeAll { $0.id == sessionId }
         
-        // Ensure we always have at least one session
-        if sessions.isEmpty {
-            createNewSession()
-        }
+        // Don't automatically create a new session - let the UI handle empty state
     }
     
     func clearSession(_ sessionId: UUID) {

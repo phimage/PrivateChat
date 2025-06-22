@@ -21,8 +21,16 @@ struct ContentView: View {
                 onNewSession: { showingNewSessionSheet = true },
                 onDeleteSession: { sessionId in
                     chatManager.deleteSession(sessionId)
+                    
+                    // Handle selection after deletion
                     if selectedSessionId == sessionId {
-                        selectedSessionId = chatManager.sessions.first?.id
+                        if chatManager.sessions.isEmpty {
+                            // No sessions left, clear selection to show welcome view
+                            selectedSessionId = nil
+                        } else {
+                            // Select the first available session
+                            selectedSessionId = chatManager.sessions.first?.id
+                        }
                     }
                 }
             )
@@ -46,6 +54,12 @@ struct ContentView: View {
             } else if selectedSessionId == nil {
                 // Select the first session if available
                 selectedSessionId = chatManager.sessions.first?.id
+            }
+        }
+        .onChange(of: chatManager.sessions.count) { oldCount, newCount in
+            // When all sessions are deleted, clear selection to show welcome view
+            if newCount == 0 {
+                selectedSessionId = nil
             }
         }
         .sheet(isPresented: $showingNewSessionSheet) {
