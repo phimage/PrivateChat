@@ -10,7 +10,7 @@ import FoundationModels
 
 struct ChatSettingsView: View {
     let session: ChatSession
-    let toolManager: ToolManager
+    @ObservedObject var toolManager: ToolManager
     let chatManager: ChatManager
     @Binding var isPresented: Bool
     
@@ -29,6 +29,7 @@ struct ChatSettingsView: View {
     var body: some View {
         NavigationView {
             VStack(alignment: .leading, spacing: 16) {
+                Spacer()
                 // Session Information
                 GroupBox("Session Information") {
                     VStack(alignment: .leading, spacing: 8) {
@@ -76,12 +77,15 @@ struct ChatSettingsView: View {
                             Text("\(toolManager.enabledTools.count) of \(toolManager.allTools.count) enabled")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
+                                .animation(.easeInOut(duration: 0.2), value: toolManager.enabledTools.count)
                         }
                         
                         // Tool management buttons
                         HStack {
                             Button("Enable All") {
-                                toolManager.enableAllTools()
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    toolManager.enableAllTools()
+                                }
                                 Task {
                                     await chatManager.reinitializeSession(session.id)
                                 }
@@ -89,7 +93,9 @@ struct ChatSettingsView: View {
                             .buttonStyle(.bordered)
                             
                             Button("Disable All") {
-                                toolManager.disableAllTools()
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    toolManager.disableAllTools()
+                                }
                                 Task {
                                     await chatManager.reinitializeSession(session.id)
                                 }
@@ -126,7 +132,9 @@ struct ChatSettingsView: View {
                                         tool: tool,
                                         isEnabled: toolManager.enabledToolNames.contains(tool.name),
                                         onToggle: { enabled in
-                                            toolManager.setToolEnabled(tool.name, enabled: enabled)
+                                            withAnimation(.easeInOut(duration: 0.2)) {
+                                                toolManager.setToolEnabled(tool.name, enabled: enabled)
+                                            }
                                             Task {
                                                 await chatManager.reinitializeSession(session.id)
                                             }
@@ -163,33 +171,40 @@ struct ToolRowView: View {
     
     var body: some View {
         HStack {
-            Toggle("", isOn: Binding(
-                get: { isEnabled },
-                set: { onToggle($0) }
-            ))
-            .toggleStyle(.checkbox)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(tool.name)
-                    .font(.headline)
-                    .foregroundColor(isEnabled ? .primary : .secondary)
-                
-                Text("Tool for enhanced functionality")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .lineLimit(2)
+            Button(action: {
+                onToggle(!isEnabled)
+            }) {
+                HStack {
+                    Image(systemName: isEnabled ? "checkmark.square.fill" : "square")
+                        .font(.title2)
+                        .foregroundColor(isEnabled ? .accentColor : .secondary)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(tool.name)
+                            .font(.headline)
+                            .foregroundColor(isEnabled ? .primary : .secondary)
+                        
+                        Text("Tool for enhanced functionality")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
+                    
+                    Spacer()
+                    
+                    // Status indicator
+                    Circle()
+                        .fill(isEnabled ? Color.green : Color.gray)
+                        .frame(width: 8, height: 8)
+                }
             }
-            
-            Spacer()
-            
-            // Status indicator
-            Circle()
-                .fill(isEnabled ? Color.green : Color.gray)
-                .frame(width: 8, height: 8)
+            .buttonStyle(.plain)
+            .contentShape(Rectangle())
         }
         .padding(.vertical, 4)
         .background(isEnabled ? Color.clear : Color.gray.opacity(0.1))
         .cornerRadius(6)
+        .animation(.easeInOut(duration: 0.2), value: isEnabled)
     }
 }
 
