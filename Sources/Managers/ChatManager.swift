@@ -70,8 +70,18 @@ class ChatManager: ObservableObject {
         session.addMessage(userMessage)
         
         // Get AI response
+        await getAIResponse(for: sessionId, userMessage: content)
+    }
+    
+    func getAIResponse(for sessionId: UUID, userMessage: String) async {
+        guard let session = sessions.first(where: { $0.id == sessionId }) else {
+            logger.error("Session not found: \(sessionId)")
+            return
+        }
+        
+        // Get AI response
         do {
-            let response = try await getAIResponse(for: session, userInput: content)
+            let response = try await getAIResponse(for: session, userInput: userMessage)
             let assistantMessage = ChatMessage(content: response, isFromUser: false)
             session.addMessage(assistantMessage)
         } catch {

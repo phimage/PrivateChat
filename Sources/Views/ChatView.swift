@@ -109,11 +109,17 @@ struct ChatView: View {
         let text = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty && !isLoading else { return }
         
+        // Add user message immediately
+        let userMessage = ChatMessage(content: text, isFromUser: true)
+        session.addMessage(userMessage)
+        
         messageText = ""
         isLoading = true
         
         Task {
-            await chatManager.sendMessage(text, to: session.id)
+            // Only send for AI response, user message already added
+            await chatManager.getAIResponse(for: session.id, userMessage: text)
+            
             await MainActor.run {
                 isLoading = false
                 isInputFocused = true
