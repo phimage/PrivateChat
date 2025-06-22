@@ -92,6 +92,16 @@ class ChatManager: ObservableObject {
         return toolManager
     }
     
+    /// Reinitialize a session (useful when tool settings change)
+    func reinitializeSession(_ sessionId: UUID) async {
+        guard let session = sessions.first(where: { $0.id == sessionId }) else {
+            logger.error("Session not found for reinitialization: \(sessionId)")
+            return
+        }
+        
+        await initializeSession(session)
+    }
+    
     // MARK: - Private Methods
     
     private func initializeSession(_ session: ChatSession) async {

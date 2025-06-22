@@ -12,6 +12,7 @@ struct ChatView: View {
     let chatManager: ChatManager
     @State private var messageText = ""
     @State private var isLoading = false
+    @State private var showingSettings = false
     @FocusState private var isInputFocused: Bool
     
     var body: some View {
@@ -87,12 +88,20 @@ struct ChatView: View {
                     Divider()
                     
                     Button("Settings...") {
-                        // TODO: Open settings
+                        showingSettings = true
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
             }
+        }
+        .sheet(isPresented: $showingSettings) {
+            ChatSettingsView(
+                session: session,
+                toolManager: chatManager.sharedToolManager,
+                chatManager: chatManager,
+                isPresented: $showingSettings
+            )
         }
     }
     
