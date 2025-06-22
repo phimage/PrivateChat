@@ -151,6 +151,24 @@ class ToolManager: ObservableObject {
         guard let tools = toolsByClient[clientName] else { return false }
         return tools.contains { enabledToolNames.contains($0.name) }
     }
+    
+    func killTools() async {
+        logger.debug("Killing all mcp tools server...")
+        
+        loadingTask?.cancel()
+        // Get clients
+        var clients: [String: MCP.Client] = [:]
+        for tool in allTools where tool is MCPWrapperTool {
+            if let mcpTool = tool as? MCPWrapperTool {
+                clients[mcpTool.mcpClient.name] = mcpTool.mcpClient
+            }
+        }
+        // kill each client
+        for (_, client) in clients {
+            await client.disconnect()
+            logger.debug("Killed tool server: \(client.name)")
+        }
+    }
 
     // MARK: - Private Methods
     

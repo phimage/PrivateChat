@@ -91,7 +91,7 @@ struct NewSessionView: View {
             }
         }
         .padding()
-        .frame(minWidth: 450, idealWidth: 500, maxWidth: 600, minHeight: 380, idealHeight: 420, maxHeight: 500)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onAppear {
             isTextFieldFocused = true
         }

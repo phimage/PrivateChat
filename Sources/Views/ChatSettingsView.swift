@@ -190,7 +190,7 @@ struct ChatSettingsView: View {
                 }
             }
         }
-        .frame(minWidth: 600, minHeight: 500)
+        .frame(minHeight: 500)
     }
 }
 
