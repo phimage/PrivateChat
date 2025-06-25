@@ -10,6 +10,7 @@ import SwiftUI
 struct ChatView: View {
     let session: ChatSession
     let chatManager: ChatManager
+    let toolManager: ToolManager
     @State private var messageText = ""
     @State private var isLoading = false
     @State private var showingSettings = false
@@ -98,7 +99,7 @@ struct ChatView: View {
         .sheet(isPresented: $showingSettings) {
             ChatSettingsView(
                 session: session,
-                toolManager: chatManager.sharedToolManager,
+                toolManager: toolManager,
                 chatManager: chatManager,
                 isPresented: $showingSettings
             )
@@ -173,12 +174,14 @@ struct MessageView: View {
 }
 
 #Preview {
-    ChatView(
+    let toolManager = ToolManager()
+    return ChatView(
         session: ChatSession(title: "Preview Chat", messages: [
             ChatMessage(content: "Hello, how can I help you today?", isFromUser: false),
             ChatMessage(content: "I need help with SwiftUI", isFromUser: true),
             ChatMessage(content: "I'd be happy to help you with SwiftUI! What specific aspect would you like to learn about?", isFromUser: false)
         ]),
-        chatManager: ChatManager()
+        chatManager: ChatManager(toolManager: toolManager),
+        toolManager: toolManager
     )
 }

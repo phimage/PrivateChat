@@ -7,6 +7,8 @@
 
 import SwiftUI
 import FoundationModels
+import Logging
+import MCPUtils
 
 struct ChatSettingsView: View {
     let session: ChatSession
@@ -15,6 +17,8 @@ struct ChatSettingsView: View {
     @Binding var isPresented: Bool
     
     @State private var searchText = ""
+    
+    private let logger = Logger(label: "ChatSettingsView")
     
     var filteredToolsByClient: [String: [any FoundationModels.Tool]] {
         let toolsByClient = toolManager.toolsByClient
@@ -47,132 +51,135 @@ struct ChatSettingsView: View {
     var body: some View {
         NavigationView {
             VStack(alignment: .leading, spacing: 16) {
-                Spacer()
-                // Session Information
-                GroupBox("Session Information") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Text("Title:")
-                                .font(.headline)
-                            Spacer()
-                            Text(session.title)
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        HStack {
-                            Text("Temperature:")
-                                .font(.headline)
-                            Spacer()
-                            Text(String(format: "%.1f", session.temperature))
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        HStack {
-                            Text("System Instructions:")
-                                .font(.headline)
-                            Spacer()
-                        }
-                        
-                        Text(session.systemInstructions)
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(8)
-                            .background(Color(NSColor.controlBackgroundColor))
-                            .cornerRadius(6)
-                    }
-                }
-                
-                // Tool Filtering
-                GroupBox("Available Tools") {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Filter tools used in this chat session")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            
-                            Spacer()
-                            
-                            Text("\(toolManager.enabledTools.count) of \(toolManager.allTools.count) enabled")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                                .animation(.easeInOut(duration: 0.2), value: toolManager.enabledTools.count)
-                        }
-                        
-                        // Tool management buttons
-                        HStack {
-                            Button("Enable All") {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    toolManager.enableAllTools()
-                                }
-                                Task {
-                                    await chatManager.reinitializeSession(session.id)
-                                }
-                            }
-                            .buttonStyle(.bordered)
-                            
-                            Button("Disable All") {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    toolManager.disableAllTools()
-                                }
-                                Task {
-                                    await chatManager.reinitializeSession(session.id)
-                                }
-                            }
-                            .buttonStyle(.bordered)
-                            
-                            Spacer()
-                        }
-                        
-                        // Search field
-                        TextField("Search tools...", text: $searchText)
-                            .textFieldStyle(.roundedBorder)
-                        
-                        // Tools list grouped by client
-                        if filteredToolsByClient.isEmpty {
-                            VStack {
-                                Image(systemName: "magnifyingglass")
-                                    .font(.title)
-                                    .foregroundColor(.secondary)
-                                Text("No tools found")
-                                    .font(.headline)
-                                    .foregroundColor(.secondary)
-                                if !searchText.isEmpty {
-                                    Text("Try adjusting your search terms")
-                                        .font(.caption)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        // Session Information
+                        GroupBox("Session Information") {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Text("Title:")
+                                        .font(.headline)
+                                    Spacer()
+                                    Text(session.title)
                                         .foregroundColor(.secondary)
                                 }
+                                
+                                HStack {
+                                    Text("Temperature:")
+                                        .font(.headline)
+                                    Spacer()
+                                    Text(String(format: "%.1f", session.temperature))
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                HStack {
+                                    Text("System Instructions:")
+                                        .font(.headline)
+                                    Spacer()
+                                }
+                                
+                                Text(session.systemInstructions)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .padding(8)
+                                    .background(Color(NSColor.controlBackgroundColor))
+                                    .cornerRadius(6)
                             }
-                            .frame(maxWidth: .infinity, minHeight: 100)
-                        } else {
-                            List {
-                                ForEach(Array(filteredToolsByClient.keys.sorted()), id: \.self) { clientName in
-                                    if let tools = filteredToolsByClient[clientName] {
-                                        Section(header: ClientHeaderView(
-                                            clientName: clientName, 
-                                            toolCount: tools.count,
-                                            toolManager: toolManager,
-                                            chatManager: chatManager,
-                                            sessionId: session.id
-                                        )) {
-                                            ForEach(tools, id: \.name) { tool in
-                                                ToolRowView(
-                                                    tool: tool,
-                                                    isEnabled: toolManager.enabledToolNames.contains(tool.name),
-                                                    onToggle: { enabled in
-                                                        withAnimation(.easeInOut(duration: 0.2)) {
-                                                            toolManager.setToolEnabled(tool.name, enabled: enabled)
-                                                        }
-                                                        Task {
-                                                            await chatManager.reinitializeSession(session.id)
-                                                        }
+                        }
+                        
+                        // Tool Filtering
+                        GroupBox("Available Tools") {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Text("Filter tools used in this chat session")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                    
+                                    Spacer()
+                                    
+                                    Text("\(toolManager.enabledTools.count) of \(toolManager.allTools.count) enabled")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                        .animation(.easeInOut(duration: 0.2), value: toolManager.enabledTools.count)
+                                }
+                                
+                                // Tool management buttons
+                                HStack {
+                                    Button("Enable All") {
+                                        withAnimation(.easeInOut(duration: 0.3)) {
+                                            toolManager.enableAllTools()
+                                        }
+                                        Task {
+                                            await chatManager.reinitializeSession(session.id)
+                                        }
+                                    }
+                                    .buttonStyle(.bordered)
+                                    
+                                    Button("Disable All") {
+                                        withAnimation(.easeInOut(duration: 0.3)) {
+                                            toolManager.disableAllTools()
+                                        }
+                                        Task {
+                                            await chatManager.reinitializeSession(session.id)
+                                        }
+                                    }
+                                    .buttonStyle(.bordered)
+                                    
+                                    Spacer()
+                                }
+                                
+                                // Search field
+                                TextField("Search tools...", text: $searchText)
+                                    .textFieldStyle(.roundedBorder)
+                                
+                                // Tools list grouped by client
+                                if filteredToolsByClient.isEmpty {
+                                    VStack {
+                                        Image(systemName: "magnifyingglass")
+                                            .font(.title)
+                                            .foregroundColor(.secondary)
+                                        Text("No tools found")
+                                            .font(.headline)
+                                            .foregroundColor(.secondary)
+                                        if !searchText.isEmpty {
+                                            Text("Try adjusting your search terms")
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, minHeight: 100)
+                                } else {
+                                    List {
+                                        ForEach(Array(filteredToolsByClient.keys.sorted()), id: \.self) { clientName in
+                                            if let tools = filteredToolsByClient[clientName] {
+                                                Section(header: ClientHeaderView(
+                                                    clientName: clientName, 
+                                                    toolCount: tools.count,
+                                                    toolManager: toolManager,
+                                                    chatManager: chatManager,
+                                                    sessionId: session.id
+                                                )) {
+                                                    ForEach(tools, id: \.name) { tool in
+                                                        ToolRowView(
+                                                            tool: tool,
+                                                            isEnabled: toolManager.enabledToolNames.contains(tool.name),
+                                                            onToggle: { enabled in
+                                                                withAnimation(.easeInOut(duration: 0.2)) {
+                                                                    toolManager.setToolEnabled(tool.name, enabled: enabled)
+                                                                }
+                                                                Task {
+                                                                    await chatManager.reinitializeSession(session.id)
+                                                                }
+                                                            }
+                                                        )
                                                     }
-                                                )
+                                                }
                                             }
                                         }
                                     }
+                                    .frame(minHeight: 200)
                                 }
                             }
-                            .frame(minHeight: 200)
                         }
                     }
                 }
@@ -245,6 +252,11 @@ struct ClientHeaderView: View {
     let chatManager: ChatManager
     let sessionId: UUID
     
+    // Check if this client comes from CurrentAppConfig (removable) vs built-in (Claude, VS Code)
+    private var isRemovableClient: Bool {
+        return toolManager.isCurrentAppServer(clientName)
+    }
+    
     var body: some View {
         HStack {
             Image(systemName: clientIcon)
@@ -254,6 +266,13 @@ struct ClientHeaderView: View {
             Text(clientName)
                 .font(.subheadline)
                 .fontWeight(.semibold)
+            
+            if isRemovableClient {
+                Image(systemName: "externaldrive.badge.plus")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .help("Custom MCP Server")
+            }
             
             Spacer()
             
@@ -337,10 +356,11 @@ struct ClientHeaderView: View {
 }
 
 #Preview {
-    ChatSettingsView(
+    let toolManager = ToolManager()
+    return ChatSettingsView(
         session: ChatSession(title: "Preview Chat"),
-        toolManager: ToolManager(),
-        chatManager: ChatManager(),
+        toolManager: toolManager,
+        chatManager: ChatManager(toolManager: toolManager),
         isPresented: .constant(true)
     )
 }

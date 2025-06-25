@@ -12,6 +12,7 @@ struct SidebarView: View {
     @Binding var selectedSessionId: UUID?
     let onNewSession: () -> Void
     let onDeleteSession: (UUID) -> Void
+    let onShowSettings: () -> Void
     
     var body: some View {
         VStack(spacing: 0) {
@@ -43,6 +44,27 @@ struct SidebarView: View {
                 .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
             }
             .listStyle(.sidebar)
+            
+            // Footer with settings button
+            VStack {
+                Divider()
+                
+                HStack {
+                    Button(action: onShowSettings) {
+                        HStack {
+                            Image(systemName: "gearshape")
+                                .font(.title3)
+                            Text("Settings")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                    .help("App Settings")
+                    
+                    Spacer()
+                }
+                .padding()
+            }
         }
     }
 }
@@ -97,7 +119,8 @@ struct SessionRowView: View {
         ],
         selectedSessionId: .constant(nil),
         onNewSession: {},
-        onDeleteSession: { _ in }
+        onDeleteSession: { _ in },
+        onShowSettings: {}
     )
     .frame(width: 250)
 }

@@ -219,5 +219,11 @@ class ToolManager: ObservableObject {
         // If no client info found, group under "General"
         return "General"
     }
-
+    
+    /// Check if a client name corresponds to a CurrentAppConfig server
+    func isCurrentAppServer(_ clientName: String) -> Bool {
+        // Built-in clients that cannot be removed
+        let builtInClients = ["claude", "vs code", "vscode", "general", "system"]
+        return !builtInClients.contains(clientName.lowercased())
+    }
 }

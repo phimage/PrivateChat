@@ -16,9 +16,10 @@ class ChatManager: ObservableObject {
     
     @Published var sessions: [ChatSession] = []
     private let logger = Logger(label: "ChatManager")
-    private let toolManager = ToolManager()
+    private let toolManager: ToolManager
     
-    init() {
+    init(toolManager: ToolManager = ToolManager()) {
+        self.toolManager = toolManager
         // Don't create initial session automatically
         // Let the user create the first session with custom instructions
         

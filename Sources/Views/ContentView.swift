@@ -8,9 +8,17 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject private var chatManager = ChatManager()
+    @StateObject private var toolManager = ToolManager()
+    @StateObject private var chatManager: ChatManager
     @State private var selectedSessionId: UUID?
     @State private var showingNewSessionSheet = false
+    @State private var showingAppSettings = false
+    
+    init() {
+        let toolManager = ToolManager()
+        self._toolManager = StateObject(wrappedValue: toolManager)
+        self._chatManager = StateObject(wrappedValue: ChatManager(toolManager: toolManager))
+    }
     
     var body: some View {
         NavigationSplitView {
@@ -32,14 +40,15 @@ struct ContentView: View {
                             selectedSessionId = chatManager.sessions.first?.id
                         }
                     }
-                }
+                },
+                onShowSettings: { showingAppSettings = true }
             )
             .navigationSplitViewColumnWidth(min: 200, ideal: 250, max: 300)
         } detail: {
             // Main chat view
             if let sessionId = selectedSessionId,
                let session = chatManager.sessions.first(where: { $0.id == sessionId }) {
-                ChatView(session: session, chatManager: chatManager)
+                ChatView(session: session, chatManager: chatManager, toolManager: toolManager)
             } else {
                 // Welcome view when no session is selected
                 WelcomeView {
@@ -67,6 +76,13 @@ struct ContentView: View {
                 let newSession = chatManager.createNewSession(systemInstructions: systemInstructions, temperature: temperature)
                 selectedSessionId = newSession.id
             }
+        }
+        .sheet(isPresented: $showingAppSettings) {
+            AppSettingsView(
+                toolManager: toolManager,
+                chatManager: chatManager,
+                isPresented: $showingAppSettings
+            )
         }
     }
 }
