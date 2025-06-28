@@ -11,7 +11,7 @@ import Logging
 import MCPUtils
 
 struct ChatSettingsView: View {
-    let session: ChatSession
+    @ObservedObject var session: ChatSession
     @ObservedObject var toolManager: ToolManager
     let chatManager: ChatManager
     @Binding var isPresented: Bool
@@ -162,15 +162,18 @@ struct ChatSettingsView: View {
                                                     ForEach(tools, id: \.name) { tool in
                                                         ToolRowView(
                                                             tool: tool,
-                                                            isEnabled: session.enabledToolNames.contains(tool.name),
-                                                            onToggle: { enabled in
-                                                                withAnimation(.easeInOut(duration: 0.2)) {
-                                                                    toolManager.setToolEnabled(tool.name, enabled: enabled, in: &session.enabledToolNames)
-                                                                }
-                                                                Task {
-                                                                    await chatManager.reinitializeSession(session.id)
-                                                                }
-                                                            }
+                                                            isEnabled: session.enabledToolNames.contains(tool.name),                                            onToggle: { enabled in
+                                                withAnimation(.easeInOut(duration: 0.2)) {
+                                                    if enabled {
+                                                        session.enabledToolNames.insert(tool.name)
+                                                    } else {
+                                                        session.enabledToolNames.remove(tool.name)
+                                                    }
+                                                }
+                                                Task {
+                                                    await chatManager.reinitializeSession(session.id)
+                                                }
+                                            }
                                                         )
                                                     }
                                                 }
@@ -282,11 +285,21 @@ struct ClientHeaderView: View {
                 Button(action: {
                     if toolManager.areAllToolsFromClientEnabled(clientName, in: session.enabledToolNames) {
                         withAnimation(.easeInOut(duration: 0.3)) {
-                            toolManager.disableAllToolsFromClient(clientName, in: &session.enabledToolNames)
+                            // Disable all tools from this client
+                            if let tools = toolManager.toolsByClient[clientName] {
+                                for tool in tools {
+                                    session.enabledToolNames.remove(tool.name)
+                                }
+                            }
                         }
                     } else {
                         withAnimation(.easeInOut(duration: 0.3)) {
-                            toolManager.enableAllToolsFromClient(clientName, in: &session.enabledToolNames)
+                            // Enable all tools from this client
+                            if let tools = toolManager.toolsByClient[clientName] {
+                                for tool in tools {
+                                    session.enabledToolNames.insert(tool.name)
+                                }
+                            }
                         }
                     }
                     Task {
