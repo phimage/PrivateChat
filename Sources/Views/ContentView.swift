@@ -72,8 +72,15 @@ struct ContentView: View {
             }
         }
         .sheet(isPresented: $showingNewSessionSheet) {
-            NewSessionView(isPresented: $showingNewSessionSheet) { systemInstructions, temperature in
-                let newSession = chatManager.createNewSession(systemInstructions: systemInstructions, temperature: temperature)
+            NewSessionView(
+                isPresented: $showingNewSessionSheet,
+                toolManager: toolManager
+            ) { systemInstructions, temperature, selectedToolNames in
+                let newSession = chatManager.createNewSession(
+                    systemInstructions: systemInstructions, 
+                    temperature: temperature,
+                    enabledToolNames: selectedToolNames
+                )
                 selectedSessionId = newSession.id
             }
         }

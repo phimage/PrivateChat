@@ -184,10 +184,8 @@ class ToolManager: ObservableObject {
         _allTools = uniqueTools
         isLoaded = true
         
-        // If no tools are explicitly enabled, enable all by default
-        if enabledToolNames.isEmpty {
-            enabledToolNames = Set(uniqueTools.map { $0.name })
-        }
+        // By default, no tools are enabled (user must explicitly enable them)
+        // This ensures new chat sessions start with no tools active
         
         logger.debug("Loaded \(uniqueTools.count) unique tools")
     }

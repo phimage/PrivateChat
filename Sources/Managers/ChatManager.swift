@@ -30,7 +30,7 @@ class ChatManager: ObservableObject {
     }
     
     @discardableResult
-    func createNewSession(systemInstructions: String? = nil, temperature: Double? = nil) -> ChatSession {
+    func createNewSession(systemInstructions: String? = nil, temperature: Double? = nil, enabledToolNames: Set<String>? = nil) -> ChatSession {
         let session = ChatSession()
         
         // Set custom system instructions if provided
@@ -44,6 +44,11 @@ class ChatManager: ObservableObject {
         }
         
         sessions.append(session)
+        
+        // Set the tool selection for this session if provided
+        if let toolNames = enabledToolNames {
+            toolManager.enabledToolNames = toolNames
+        }
         
         // Initialize the session asynchronously
         Task {
