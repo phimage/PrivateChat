@@ -19,25 +19,19 @@ class ToolManager: ObservableObject {
     private var isLoaded = false
     private var loadingTask: Task<Void, Never>?
     
-    /// Set of tool names that are currently enabled
-    @Published var enabledToolNames: Set<String> = []
-    
     /// Returns all loaded tools (both enabled and disabled)
     var allTools: [any FoundationModels.Tool] {
         return _allTools
     }
     
-    /// Returns only the enabled tools
-    var enabledTools: [any FoundationModels.Tool] {
+    /// Returns enabled tools for a given set of enabled tool names
+    func getEnabledTools(enabledToolNames: Set<String>) -> [any FoundationModels.Tool] {
         return _allTools.filter { enabledToolNames.contains($0.name) }
     }
     
     /// Returns the tools to use (enabled tools, or all tools if none are specifically enabled)
-    var tools: [any FoundationModels.Tool] {
-        if enabledToolNames.isEmpty {
-            return _allTools
-        }
-        return enabledTools
+    func getToolsToUse(enabledToolNames: Set<String>) -> [any FoundationModels.Tool] {
+        return getEnabledTools(enabledToolNames: enabledToolNames)
     }
     
     /// Returns true if tools have been loaded
@@ -65,9 +59,10 @@ class ToolManager: ObservableObject {
     }
     
     /// Returns enabled tools grouped by MCP client name
-    var enabledToolsByClient: [String: [any FoundationModels.Tool]] {
+    func getEnabledToolsByClient(enabledToolNames: Set<String>) -> [String: [any FoundationModels.Tool]] {
         var groupedTools: [String: [any FoundationModels.Tool]] = [:]
         
+        let enabledTools = getEnabledTools(enabledToolNames: enabledToolNames)
         for tool in enabledTools {
             let clientName = getClientName(for: tool)
             
@@ -103,8 +98,8 @@ class ToolManager: ObservableObject {
         await loadTools()
     }
     
-    /// Enable or disable a specific tool
-    func setToolEnabled(_ toolName: String, enabled: Bool) {
+    /// Enable or disable a specific tool in a set of enabled tool names
+    func setToolEnabled(_ toolName: String, enabled: Bool, in enabledToolNames: inout Set<String>) {
         if enabled {
             enabledToolNames.insert(toolName)
         } else {
@@ -112,18 +107,13 @@ class ToolManager: ObservableObject {
         }
     }
     
-    /// Enable all tools
-    func enableAllTools() {
-        enabledToolNames = Set(_allTools.map { $0.name })
+    /// Get a set of all tool names
+    func getAllToolNames() -> Set<String> {
+        return Set(_allTools.map { $0.name })
     }
     
-    /// Disable all tools
-    func disableAllTools() {
-        enabledToolNames.removeAll()
-    }
-    
-    /// Enable all tools from a specific client
-    func enableAllToolsFromClient(_ clientName: String) {
+    /// Enable all tools from a specific client in a set of enabled tool names
+    func enableAllToolsFromClient(_ clientName: String, in enabledToolNames: inout Set<String>) {
         if let tools = toolsByClient[clientName] {
             for tool in tools {
                 enabledToolNames.insert(tool.name)
@@ -131,8 +121,8 @@ class ToolManager: ObservableObject {
         }
     }
     
-    /// Disable all tools from a specific client
-    func disableAllToolsFromClient(_ clientName: String) {
+    /// Disable all tools from a specific client in a set of enabled tool names
+    func disableAllToolsFromClient(_ clientName: String, in enabledToolNames: inout Set<String>) {
         if let tools = toolsByClient[clientName] {
             for tool in tools {
                 enabledToolNames.remove(tool.name)
@@ -141,13 +131,13 @@ class ToolManager: ObservableObject {
     }
     
     /// Check if all tools from a client are enabled
-    func areAllToolsFromClientEnabled(_ clientName: String) -> Bool {
+    func areAllToolsFromClientEnabled(_ clientName: String, in enabledToolNames: Set<String>) -> Bool {
         guard let tools = toolsByClient[clientName], !tools.isEmpty else { return false }
         return tools.allSatisfy { enabledToolNames.contains($0.name) }
     }
     
     /// Check if any tools from a client are enabled
-    func areAnyToolsFromClientEnabled(_ clientName: String) -> Bool {
+    func areAnyToolsFromClientEnabled(_ clientName: String, in enabledToolNames: Set<String>) -> Bool {
         guard let tools = toolsByClient[clientName] else { return false }
         return tools.contains { enabledToolNames.contains($0.name) }
     }
@@ -183,9 +173,6 @@ class ToolManager: ObservableObject {
         
         _allTools = uniqueTools
         isLoaded = true
-        
-        // By default, no tools are enabled (user must explicitly enable them)
-        // This ensures new chat sessions start with no tools active
         
         logger.debug("Loaded \(uniqueTools.count) unique tools")
     }

@@ -245,6 +245,7 @@ struct NewSessionView: View {
             }
         }
         .frame(minHeight: 500)
+        .padding(6)
         .onAppear {
             if selectedTab == 0 {
                 isTextFieldFocused = true

@@ -34,6 +34,7 @@ class ChatSession: ObservableObject, Identifiable {
     @Published var systemInstructions: String = "You are a helpful assistant."
     @Published var temperature: Double = 0.7
     @Published var maximumResponseTokens: Int?
+    @Published var enabledToolNames: Set<String> = []
     
     // Internal session state
     var languageModelSession: LanguageModelSession?

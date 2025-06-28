@@ -43,12 +43,12 @@ class ChatManager: ObservableObject {
             session.temperature = temp
         }
         
-        sessions.append(session)
-        
-        // Set the tool selection for this session if provided
+        // Set the enabled tools for this session if provided
         if let toolNames = enabledToolNames {
-            toolManager.enabledToolNames = toolNames
+            session.enabledToolNames = toolNames
         }
+        
+        sessions.append(session)
         
         // Initialize the session asynchronously
         Task {
@@ -120,14 +120,25 @@ class ChatManager: ObservableObject {
         await initializeSession(session)
     }
     
+    /// Update the enabled tools for a specific session
+    func updateSessionTools(_ sessionId: UUID, enabledToolNames: Set<String>) async {
+        guard let session = sessions.first(where: { $0.id == sessionId }) else {
+            logger.error("Session not found for tool update: \(sessionId)")
+            return
+        }
+        
+        session.enabledToolNames = enabledToolNames
+        await initializeSession(session)
+    }
+    
     // MARK: - Private Methods
     
     private func initializeSession(_ session: ChatSession) async {
         // Ensure tools are loaded
         await toolManager.loadToolsIfNeeded()
         
-        // Get tools from the shared tool manager
-        let tools = toolManager.tools
+        // Get tools for this specific session
+        let tools = toolManager.getToolsToUse(enabledToolNames: session.enabledToolNames)
         session.tools = tools
         
         // Create language model session

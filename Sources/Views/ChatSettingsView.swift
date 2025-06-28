@@ -97,17 +97,17 @@ struct ChatSettingsView: View {
                                     
                                     Spacer()
                                     
-                                    Text("\(toolManager.enabledTools.count) of \(toolManager.allTools.count) enabled")
+                                    Text("\(session.enabledToolNames.count) of \(toolManager.allTools.count) enabled")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
-                                        .animation(.easeInOut(duration: 0.2), value: toolManager.enabledTools.count)
+                                        .animation(.easeInOut(duration: 0.2), value: session.enabledToolNames.count)
                                 }
                                 
                                 // Tool management buttons
                                 HStack {
                                     Button("Enable All") {
                                         withAnimation(.easeInOut(duration: 0.3)) {
-                                            toolManager.enableAllTools()
+                                            session.enabledToolNames = toolManager.getAllToolNames()
                                         }
                                         Task {
                                             await chatManager.reinitializeSession(session.id)
@@ -117,7 +117,7 @@ struct ChatSettingsView: View {
                                     
                                     Button("Disable All") {
                                         withAnimation(.easeInOut(duration: 0.3)) {
-                                            toolManager.disableAllTools()
+                                            session.enabledToolNames.removeAll()
                                         }
                                         Task {
                                             await chatManager.reinitializeSession(session.id)
@@ -157,15 +157,15 @@ struct ChatSettingsView: View {
                                                     toolCount: tools.count,
                                                     toolManager: toolManager,
                                                     chatManager: chatManager,
-                                                    sessionId: session.id
+                                                    session: session
                                                 )) {
                                                     ForEach(tools, id: \.name) { tool in
                                                         ToolRowView(
                                                             tool: tool,
-                                                            isEnabled: toolManager.enabledToolNames.contains(tool.name),
+                                                            isEnabled: session.enabledToolNames.contains(tool.name),
                                                             onToggle: { enabled in
                                                                 withAnimation(.easeInOut(duration: 0.2)) {
-                                                                    toolManager.setToolEnabled(tool.name, enabled: enabled)
+                                                                    toolManager.setToolEnabled(tool.name, enabled: enabled, in: &session.enabledToolNames)
                                                                 }
                                                                 Task {
                                                                     await chatManager.reinitializeSession(session.id)
@@ -250,7 +250,7 @@ struct ClientHeaderView: View {
     let toolCount: Int
     let toolManager: ToolManager
     let chatManager: ChatManager
-    let sessionId: UUID
+    let session: ChatSession
     
     // Check if this client comes from CurrentAppConfig (removable) vs built-in (Claude, VS Code)
     private var isRemovableClient: Bool {
@@ -280,17 +280,17 @@ struct ClientHeaderView: View {
             HStack(spacing: 8) {
                 // Enable/Disable toggle for the entire client
                 Button(action: {
-                    if toolManager.areAllToolsFromClientEnabled(clientName) {
+                    if toolManager.areAllToolsFromClientEnabled(clientName, in: session.enabledToolNames) {
                         withAnimation(.easeInOut(duration: 0.3)) {
-                            toolManager.disableAllToolsFromClient(clientName)
+                            toolManager.disableAllToolsFromClient(clientName, in: &session.enabledToolNames)
                         }
                     } else {
                         withAnimation(.easeInOut(duration: 0.3)) {
-                            toolManager.enableAllToolsFromClient(clientName)
+                            toolManager.enableAllToolsFromClient(clientName, in: &session.enabledToolNames)
                         }
                     }
                     Task {
-                        await chatManager.reinitializeSession(sessionId)
+                        await chatManager.reinitializeSession(session.id)
                     }
                 }) {
                     Image(systemName: clientToggleIcon)
@@ -327,9 +327,9 @@ struct ClientHeaderView: View {
     }
     
     private var clientToggleIcon: String {
-        if toolManager.areAllToolsFromClientEnabled(clientName) {
+        if toolManager.areAllToolsFromClientEnabled(clientName, in: session.enabledToolNames) {
             return "checkmark.circle.fill"
-        } else if toolManager.areAnyToolsFromClientEnabled(clientName) {
+        } else if toolManager.areAnyToolsFromClientEnabled(clientName, in: session.enabledToolNames) {
             return "minus.circle.fill"
         } else {
             return "circle"
@@ -337,9 +337,9 @@ struct ClientHeaderView: View {
     }
     
     private var clientToggleColor: Color {
-        if toolManager.areAllToolsFromClientEnabled(clientName) {
+        if toolManager.areAllToolsFromClientEnabled(clientName, in: session.enabledToolNames) {
             return .green
-        } else if toolManager.areAnyToolsFromClientEnabled(clientName) {
+        } else if toolManager.areAnyToolsFromClientEnabled(clientName, in: session.enabledToolNames) {
             return .orange
         } else {
             return .secondary
@@ -347,7 +347,7 @@ struct ClientHeaderView: View {
     }
     
     private var clientToggleHelpText: String {
-        if toolManager.areAllToolsFromClientEnabled(clientName) {
+        if toolManager.areAllToolsFromClientEnabled(clientName, in: session.enabledToolNames) {
             return "Disable all \(clientName) tools"
         } else {
             return "Enable all \(clientName) tools"
